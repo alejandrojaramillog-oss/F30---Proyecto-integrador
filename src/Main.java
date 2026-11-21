@@ -1,32 +1,34 @@
+import model.ReglaDescuento;
+import ui.VentanaCafeteria;
+import db.ConexionSQLite;
+import db.RepositorioPedidos;
 
+import java.nio.file.Paths;
+import java.sql.SQLException;
 
-import java.util.Locale;
-import service.ResultadoDescuento;
-import service.ServicioDescuentos;
+import javax.swing.SwingUtilities;
 
-/** Demostracion por consola de la Unidad II; Swing queda para la Unidad III. */
 public class Main {
     public static void main(String[] args) {
-        ServicioDescuentos servicio = new ServicioDescuentos();
-        String[] montos = args.length == 0 ? new String[] {"8", "10", "20", "10.70"} : args;
-        boolean huboErrores = false;
-        System.out.println("Cafeteria - demostracion de descuentos (Unidad II)");
-        for (String monto : montos) {
-            try {
-                ResultadoDescuento resultado = servicio.calcular(Double.parseDouble(monto));
-                System.out.printf(Locale.ROOT,
-                        "Total: $%.2f | Descuento: $%.2f | Total final: $%.2f%n",
-                        resultado.getTotalOriginal(), resultado.getDescuento(), resultado.getTotalFinal());
-            } catch (NumberFormatException error) {
-                System.err.println("Monto '" + monto + "': escribe un numero usando punto decimal, por ejemplo 10.70.");
-                huboErrores = true;
-            } catch (IllegalArgumentException error) {
-                System.err.println("Monto '" + monto + "': " + error.getMessage());
-                huboErrores = true;
-            }
-        }
-        if (huboErrores) {
-            System.exit(1);
+        // Expresión lambda (Unidad II): 15% de descuento si el monto total es mayor a $10
+        ReglaDescuento reglaCafeteria = montoTotal -> (montoTotal > 10.0) ? montoTotal * 0.15 : 0.0;
+
+        RepositorioPedidos repositorio = new RepositorioPedidos(new ConexionSQLite(
+                Paths.get(System.getProperty("cafeteria.db", "datos/cafeteria.db"))));
+        String estadoBD = iniciarBaseDatos(repositorio);
+
+        SwingUtilities.invokeLater(() -> {
+            VentanaCafeteria ventana = new VentanaCafeteria(reglaCafeteria, estadoBD, repositorio);
+            ventana.setVisible(true);
+        });
+    }
+
+    private static String iniciarBaseDatos(RepositorioPedidos repositorio) {
+        try {
+            repositorio.inicializar();
+            return "Conexion SQLite establecida. Los calculos se guardaran en la base de datos.";
+        } catch (SQLException error) {
+            return "No se pudo iniciar la base de datos. " + error.getMessage();
         }
     }
 }
