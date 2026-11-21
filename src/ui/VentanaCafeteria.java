@@ -1,5 +1,7 @@
 package ui;
 
+import db.RepositorioPedidos;
+import java.sql.SQLException;
 import model.Comida;
 import model.Producto;
 import model.ReglaDescuento;
@@ -14,10 +16,17 @@ public class VentanaCafeteria extends JFrame {
     private final JTextArea txtAreaResultado;
     private final ReglaDescuento reglaDescuento;
     private final String estadoConexionInicial;
+    private final RepositorioPedidos repositorio;
 
     public VentanaCafeteria(ReglaDescuento reglaDescuento, String estadoConexionInicial) {
+        this(reglaDescuento, estadoConexionInicial, null);
+    }
+
+    public VentanaCafeteria(ReglaDescuento reglaDescuento, String estadoConexionInicial,
+            RepositorioPedidos repositorio) {
         this.reglaDescuento = reglaDescuento;
         this.estadoConexionInicial = estadoConexionInicial;
+        this.repositorio = repositorio;
 
         setTitle("Cafetería - Gestión de Descuentos");
         setSize(500, 340);
@@ -86,6 +95,14 @@ public class VentanaCafeteria extends JFrame {
                     "Monto original: $%.2f%nDescuento aplicado: $%.2f%nTotal final a pagar: $%.2f",
                     monto, descuentoAplicado, totalFinal
             );
+            if (repositorio != null) {
+                try {
+                    long id = repositorio.guardar(monto, descuentoAplicado, totalFinal);
+                    resumen += "\nPedido guardado en SQLite con identificador " + id + ".";
+                } catch (SQLException error) {
+                    resumen += "\nNo se pudo guardar el pedido: " + error.getMessage();
+                }
+            }
             mostrarMensaje(resumen);
 
         } catch (NumberFormatException ex) {
